@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useForm, Head, Link } from '@inertiajs/vue3'
 import { gsap } from 'gsap'
-import { PhBraid, PhLockKey, PhEye, PhEyeSlash, PhArrowRight } from '@phosphor-icons/vue'
+import { PhBridge, PhLockKey, PhEye, PhEyeSlash, PhArrowRight } from '@phosphor-icons/vue'
 
 const props = defineProps({ token: String, email: String })
 
@@ -40,7 +40,7 @@ function submit() {
                 <div class="flex items-center gap-3 mb-8">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center"
                          style="background: linear-gradient(135deg, #c4956a, #d4af37);">
-                        <PhBraid :size="22" weight="bold" class="text-white" />
+                        <PhBridge :size="22" weight="bold" class="text-white" />
                     </div>
                     <span class="font-cormorant text-xl font-semibold text-onyx-800">Patricia Braids</span>
                 </div>

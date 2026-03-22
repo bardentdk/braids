@@ -27,7 +27,7 @@ const iconOptions = [
     { value: 'PhStar',         label: 'Étoile' },
     { value: 'PhFlower',       label: 'Fleur' },
     { value: 'PhSparkleStar',  label: 'Scintillement' },
-    { value: 'PhBraid',        label: 'Tresse' },
+    { value: 'PhBridge',        label: 'Tresse' },
     { value: 'PhDropHalf',     label: 'Goutte' },
     { value: 'PhLeaf',         label: 'Feuille' },
     { value: 'PhCrown',        label: 'Couronne' },
