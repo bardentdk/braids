@@ -4,7 +4,7 @@ import { Head, Link, useForm, router } from '@inertiajs/vue3'
 import PublicLayout from '@/Layouts/PublicLayout.vue'
 import {
     PhArrowLeft, PhClock, PhCalendarBlank, PhCheckCircle,
-    PhSpinnerGap, PhUser, PhPhone, PhEnvelope, PhStickerStar,
+    PhSpinnerGap, PhUser, PhPhone, PhEnvelope, PhSticker,
 } from '@phosphor-icons/vue'
 
 defineOptions({ layout: PublicLayout })
@@ -308,7 +308,7 @@ const selectedDateLabel = computed(() => {
                     <Link v-if="auth?.user" :href="route('account.appointments')"
                           class="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-poppins font-semibold text-white transition-all hover:opacity-90"
                           style="background: linear-gradient(135deg, #c4956a, #b07d52);">
-                        <PhStickerStar :size="16" /> Mes rendez-vous
+                        <PhSticker :size="16" /> Mes rendez-vous
                     </Link>
                 </div>
             </div>
