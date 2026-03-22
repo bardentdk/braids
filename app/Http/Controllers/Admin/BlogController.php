@@ -106,7 +106,9 @@ class BlogController extends Controller
         }
 
         if (($data['status'] ?? '') === 'published') {
-            $data['published_at'] = $data['published_at'] ?? now();
+            $data['published_at'] = isset($data['published_at']) && $data['published_at']
+                ? \Carbon\Carbon::parse($data['published_at'])->utc()
+                : now();
         }
 
         $data['user_id'] = auth()->id();
@@ -196,7 +198,9 @@ class BlogController extends Controller
         }
 
         if (($data['status'] ?? '') === 'published') {
-            $data['published_at'] = $data['published_at'] ?? $blog->published_at ?? now();
+            $data['published_at'] = isset($data['published_at']) && $data['published_at']
+                ? \Carbon\Carbon::parse($data['published_at'])->utc()
+                : now();
         }
 
         $blog->update($data);
