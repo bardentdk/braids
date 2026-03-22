@@ -1,5 +1,118 @@
+/* ═══════════════════════════════════════════════════════════════════
+   POLICES AUTO-HÉBERGÉES — remplace l'import Google Fonts
+   (évite ERR_NAME_NOT_RESOLVED sur les serveurs sans DNS sortant)
+   ═══════════════════════════════════════════════════════════════════ */
+ 
+/* ── Poppins ─────────────────────────────────────────────────────── */
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('/fonts/poppins-300.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/poppins-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/poppins-500.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/poppins-600.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/poppins-700.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 800;
+    font-display: swap;
+    src: url('/fonts/poppins-800.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: italic;
+    font-weight: 300;
+    font-display: swap;
+    src: url('/fonts/poppins-300i.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Poppins';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/poppins-400i.woff2') format('woff2');
+}
+ 
+/* ── Cormorant Garamond ──────────────────────────────────────────── */
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('/fonts/cormorant-300.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/cormorant-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/cormorant-500.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('/fonts/cormorant-600.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/cormorant-700.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/cormorant-400i.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Cormorant Garamond';
+    font-style: italic;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/fonts/cormorant-500i.woff2') format('woff2');
+}
 /* ─── Google Fonts ─────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&display=swap'); */
 @import "tailwindcss";
 
 
@@ -57,8 +170,8 @@
     --color-rose-braids-600: #cc2d52;
 
     /* Typographie */
-    --font-poppins:   'Poppins', sans-serif;
-    --font-cormorant: 'Cormorant Garamond', serif;
+    --font-poppins: 'Poppins', system-ui, sans-serif;
+    --font-cormorant: 'Cormorant Garamond', Georgia, serif;
 
     /* Shadows premium */
     --shadow-glow:    0 0 40px rgba(196, 149, 106, 0.25);
