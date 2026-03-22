@@ -1,0 +1,389 @@
+/* ─── Google Fonts ─────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,300;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&display=swap');
+@import "tailwindcss";
+
+
+/* ─── Theme Design System ──────────────────────── */
+@theme {
+    /* Couleurs principales - Palette Luxe Braids */
+    --color-cognac-50:  #fdf6ef;
+    --color-cognac-100: #faebd8;
+    --color-cognac-200: #f4d3ae;
+    --color-cognac-300: #edb67a;
+    --color-cognac-400: #e59347;
+    --color-cognac-500: #c4956a;
+    --color-cognac-600: #b07d52;
+    --color-cognac-700: #936345;
+    --color-cognac-800: #77503d;
+    --color-cognac-900: #624234;
+
+    --color-onyx-50:  #f6f6f9;
+    --color-onyx-100: #ececf2;
+    --color-onyx-200: #d4d4e2;
+    --color-onyx-300: #adadc8;
+    --color-onyx-400: #8080aa;
+    --color-onyx-500: #5f5f8e;
+    --color-onyx-600: #4c4c74;
+    --color-onyx-700: #3e3e5e;
+    --color-onyx-800: #1a1a2e;
+    --color-onyx-900: #0d0d1a;
+
+    --color-gold-50:  #fefaed;
+    --color-gold-100: #fdf3cc;
+    --color-gold-200: #fae595;
+    --color-gold-300: #f7d05a;
+    --color-gold-400: #f4bd2e;
+    --color-gold-500: #d4af37;
+    --color-gold-600: #b8920a;
+    --color-gold-700: #92700c;
+    --color-gold-800: #785912;
+    --color-gold-900: #664a14;
+
+    --color-cream-50:  #fdfcfb;
+    --color-cream-100: #faf7f4;
+    --color-cream-200: #f5ede4;
+    --color-cream-300: #edddd0;
+    --color-cream-400: #e0c8b5;
+    --color-cream-500: #cfb09a;
+    --color-cream-600: #b8917a;
+    --color-cream-700: #9a7260;
+
+    --color-rose-braids-50:  #fdf2f4;
+    --color-rose-braids-100: #fce7eb;
+    --color-rose-braids-200: #f9d1d9;
+    --color-rose-braids-300: #f4aab9;
+    --color-rose-braids-400: #ec7892;
+    --color-rose-braids-500: #e14d6e;
+    --color-rose-braids-600: #cc2d52;
+
+    /* Typographie */
+    --font-poppins:   'Poppins', sans-serif;
+    --font-cormorant: 'Cormorant Garamond', serif;
+
+    /* Shadows premium */
+    --shadow-glow:    0 0 40px rgba(196, 149, 106, 0.25);
+    --shadow-luxury:  0 20px 60px rgba(26, 26, 46, 0.15);
+    --shadow-card:    0 4px 24px rgba(26, 26, 46, 0.08);
+    --shadow-float:   0 8px 32px rgba(196, 149, 106, 0.2);
+
+    /* Radius */
+    --radius-brand: 1.25rem;
+
+    /* Transitions */
+    --ease-luxury: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── Base Styles ──────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-poppins);
+    background-color: var(--color-cream-100);
+    color: var(--color-onyx-800);
+    overflow-x: hidden;
+}
+
+/* ─── Custom Scrollbar ─────────────────────────── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: var(--color-cream-200);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--color-cognac-400);
+    border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-cognac-600);
+}
+
+/* ─── Selection ────────────────────────────────── */
+::selection {
+    background: var(--color-cognac-200);
+    color: var(--color-onyx-800);
+}
+
+/* ─── Headings avec Cormorant ──────────────────── */
+h1, h2, h3 {
+    font-family: var(--font-cormorant);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+
+h4, h5, h6 {
+    font-family: var(--font-poppins);
+    font-weight: 600;
+}
+
+/* ─── Utilities personnalisées ─────────────────── */
+.font-cormorant { font-family: var(--font-cormorant); }
+.font-poppins   { font-family: var(--font-poppins); }
+
+.text-gradient-gold {
+    background: linear-gradient(135deg, var(--color-gold-500), var(--color-cognac-400), var(--color-gold-600));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.text-gradient-brand {
+    background: linear-gradient(135deg, var(--color-cognac-500), var(--color-rose-braids-500));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-luxury {
+    background: linear-gradient(135deg, var(--color-onyx-800) 0%, var(--color-onyx-900) 50%, #0a0a1a 100%);
+}
+
+.bg-pattern-braids {
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(196, 149, 106, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 60% 80%, rgba(196, 149, 106, 0.05) 0%, transparent 50%);
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-dark {
+    background: rgba(26, 26, 46, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.shadow-glow    { box-shadow: var(--shadow-glow); }
+.shadow-luxury  { box-shadow: var(--shadow-luxury); }
+.shadow-card    { box-shadow: var(--shadow-card); }
+.shadow-float   { box-shadow: var(--shadow-float); }
+
+/* ─── Animations CSS pures ─────────────────────── */
+@keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-12px); }
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(196, 149, 106, 0.3); }
+    50%       { box-shadow: 0 0 40px rgba(196, 149, 106, 0.6); }
+}
+
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+.animate-float      { animation: float 3s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-spin-slow  { animation: spin-slow 8s linear infinite; }
+.animate-fade-up    { animation: fade-up 0.6s var(--ease-luxury) both; }
+
+/* ─── Transitions globales ─────────────────────── */
+.transition-luxury {
+    transition: all 0.4s var(--ease-luxury);
+}
+
+/* ─── Input style global ───────────────────────── */
+.input-brand {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1.5px solid var(--color-cream-300);
+    border-radius: 0.75rem;
+    font-family: var(--font-poppins);
+    font-size: 0.9rem;
+    color: var(--color-onyx-800);
+    transition: all 0.3s var(--ease-luxury);
+    outline: none;
+}
+
+.input-brand:focus {
+    border-color: var(--color-cognac-400);
+    box-shadow: 0 0 0 3px rgba(196, 149, 106, 0.15);
+}
+
+.input-brand::placeholder {
+    color: var(--color-cream-600);
+}
+
+/* ─── Bouton primaire ──────────────────────────── */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.75rem;
+    background: linear-gradient(135deg, var(--color-cognac-500), var(--color-cognac-600));
+    color: white;
+    font-family: var(--font-poppins);
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    border-radius: 0.875rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s var(--ease-luxury);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--color-cognac-400), var(--color-cognac-500));
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(196, 149, 106, 0.45);
+}
+
+.btn-primary:hover::before { opacity: 1; }
+
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.75rem;
+    background: transparent;
+    color: var(--color-cognac-600);
+    font-family: var(--font-poppins);
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    border-radius: 0.875rem;
+    border: 1.5px solid var(--color-cognac-400);
+    cursor: pointer;
+    transition: all 0.3s var(--ease-luxury);
+    text-decoration: none;
+}
+
+.btn-secondary:hover {
+    background: var(--color-cognac-500);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(196, 149, 106, 0.3);
+}
+
+.btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.75rem;
+    background: transparent;
+    color: var(--color-onyx-700);
+    font-family: var(--font-poppins);
+    font-weight: 500;
+    font-size: 0.875rem;
+    border-radius: 0.875rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s var(--ease-luxury);
+    text-decoration: none;
+}
+
+.btn-ghost:hover {
+    background: var(--color-cream-200);
+    color: var(--color-onyx-800);
+}
+
+/* ─── Badge ────────────────────────────────────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-error   { background: #fee2e2; color: #991b1b; }
+.badge-info    { background: #dbeafe; color: #1e40af; }
+.badge-brand   { background: var(--color-cognac-100); color: var(--color-cognac-700); }
+.badge-onyx    { background: var(--color-onyx-800); color: white; }
+
+/* ─── Page loader ──────────────────────────────── */
+#app-loader {
+    position: fixed;
+    inset: 0;
+    background: var(--color-onyx-900);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+#app-loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* ─── NProgress (Inertia) ──────────────────────── */
+#nprogress .bar {
+    background: var(--color-cognac-400) !important;
+    height: 3px !important;
+}
+
+#nprogress .peg {
+    box-shadow: 0 0 10px var(--color-cognac-400), 0 0 5px var(--color-cognac-400) !important;
+}
+
+/* ─── Responsive helpers ───────────────────────── */
+.container-brand {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .container-brand { padding: 0 2rem; }
+}
+
+@media (min-width: 1024px) {
+    .container-brand { padding: 0 3rem; }
+}
