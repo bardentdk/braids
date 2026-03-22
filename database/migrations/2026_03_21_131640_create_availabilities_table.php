@@ -6,37 +6,53 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Ajoute les colonnes nécessaires à la table availabilities
+     * pour gérer les blocages de dates en plus des créneaux récurrents.
+     *
+     * À placer dans : database/migrations/
+     * Nom suggéré  : xxxx_add_blocking_fields_to_availabilities_table.php
+     */
     public function up(): void
     {
-        Schema::create('availabilities', function (Blueprint $table) {
-            $table->id();
+        Schema::table('availabilities', function (Blueprint $table) {
+            // Colonne pour distinguer créneau récurrent / blocage
+            if (! Schema::hasColumn('availabilities', 'is_blocked')) {
+                $table->boolean('is_blocked')->default(false)->after('is_active');
+            }
 
-            // Récurrence hebdomadaire (null si date spécifique)
-            $table->unsignedTinyInteger('day_of_week')->nullable(); // 0=Dim, 1=Lun ... 6=Sam
+            // Date spécifique (pour les blocages)
+            if (! Schema::hasColumn('availabilities', 'date')) {
+                $table->date('date')->nullable()->after('is_blocked');
+            }
 
-            // Date spécifique (override la récurrence)
-            $table->date('specific_date')->nullable();
+            // Journée entière bloquée ?
+            if (! Schema::hasColumn('availabilities', 'full_day')) {
+                $table->boolean('full_day')->default(true)->after('date');
+            }
 
-            $table->time('start_time');
-            $table->time('end_time');
+            // Motif du blocage
+            if (! Schema::hasColumn('availabilities', 'reason')) {
+                $table->string('reason')->nullable()->after('full_day');
+            }
 
-            // Blocages (congés, indisponibilités)
-            $table->boolean('is_blocked')->default(false);
-            $table->string('block_reason')->nullable();
-
-            // Nombre max de RDV sur ce créneau
-            $table->integer('max_appointments')->default(1);
-
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-
-            $table->index(['day_of_week', 'is_active', 'is_blocked']);
-            $table->index(['specific_date', 'is_blocked']);
+            // Durée des créneaux (si pas déjà présente)
+            if (! Schema::hasColumn('availabilities', 'slot_duration')) {
+                $table->unsignedSmallInteger('slot_duration')->default(60)->after('end_time');
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('availabilities');
+        Schema::table('availabilities', function (Blueprint $table) {
+            $table->dropColumn(array_filter([
+                Schema::hasColumn('availabilities', 'is_blocked') ? 'is_blocked' : null,
+                Schema::hasColumn('availabilities', 'date')       ? 'date'       : null,
+                Schema::hasColumn('availabilities', 'full_day')   ? 'full_day'   : null,
+                Schema::hasColumn('availabilities', 'reason')     ? 'reason'     : null,
+                Schema::hasColumn('availabilities', 'slot_duration') ? 'slot_duration' : null,
+            ]));
+        });
     }
 };

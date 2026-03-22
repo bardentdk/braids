@@ -164,8 +164,8 @@ const subjects = [
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-semibold text-onyx-600 uppercase tracking-widest mb-2 font-poppins">Nom complet</label>
-                                    <div class="relative">
-                                        <PhUser :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-onyx-400 pointer-events-none" />
+                                    <div class="relative flex">
+                                        <PhUser :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-onyx-400 pointer-events-none right-5" />
                                         <input v-model="form.name" type="text" placeholder="Amina Diallo"
                                                class="input-brand pl-10 text-sm"
                                                :class="{ 'border-red-400': form.errors.name }" />

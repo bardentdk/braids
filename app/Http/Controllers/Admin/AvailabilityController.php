@@ -3,11 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\AvailabilityRequest;
 use App\Models\Availability;
-use App\Models\Appointment;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,223 +12,162 @@ use Inertia\Response;
 
 class AvailabilityController extends Controller
 {
+    // ── Index ─────────────────────────────────────────────────────────
     public function index(): Response
     {
-        $recurring = Availability::whereNotNull('day_of_week')
-            ->whereNull('specific_date')
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
-            ->get()
-            ->map(fn($a) => $this->format($a));
+        // On récupère TOUTES les disponibilités sans filtrer sur 'type'
+        // car la colonne n'existe peut-être pas encore.
+        // On distingue les créneaux récurrents (ont day_of_week)
+        // des blocages (ont une date spécifique) via is_blocked ou date.
+        $all = Availability::orderBy('day_of_week')->orderBy('start_time')->get();
 
-        $specific = Availability::whereNotNull('specific_date')
-            ->whereDate('specific_date', '>=', today())
-            ->orderBy('specific_date')
-            ->orderBy('start_time')
-            ->get()
-            ->map(fn($a) => $this->format($a));
+        // Séparer selon les colonnes disponibles
+        $availabilities = $all->filter(fn($a) =>
+            isset($a->day_of_week) && $a->day_of_week !== null && (!isset($a->is_blocked) || !$a->is_blocked)
+        )->map(fn($a) => [
+            'id'            => $a->id,
+            'day_of_week'   => $a->day_of_week,
+            'start_time'    => $a->start_time ? substr($a->start_time, 0, 5) : '00:00',
+            'end_time'      => $a->end_time   ? substr($a->end_time,   0, 5) : '00:00',
+            'slot_duration' => $a->slot_duration ?? 60,
+            'is_active'     => $a->is_active ?? true,
+        ])->values();
 
-        // Préparer la vue mensuelle (30 jours)
-        $calendar = $this->buildCalendarView();
+        $blocked = $all->filter(fn($a) =>
+            isset($a->is_blocked) && $a->is_blocked
+        )->map(fn($a) => [
+            'id'         => $a->id,
+            'date'       => $a->date
+                ? \Carbon\Carbon::parse($a->date)->locale('fr')->isoFormat('dddd D MMMM YYYY')
+                : '—',
+            'start_time' => $a->start_time ? substr($a->start_time, 0, 5) : null,
+            'end_time'   => $a->end_time   ? substr($a->end_time,   0, 5) : null,
+            'full_day'   => $a->full_day ?? true,
+            'reason'     => $a->reason ?? null,
+        ])->values();
 
         return Inertia::render('Admin/Availability/Index', [
-            'recurring' => $recurring,
-            'specific'  => $specific,
-            'calendar'  => $calendar,
-            'days'      => ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],
+            'availabilities' => $availabilities,
+            'blocked'        => $blocked,
         ]);
     }
 
-    public function create(): Response
+    // ── Store ─────────────────────────────────────────────────────────
+    public function store(Request $request): RedirectResponse
     {
-        return Inertia::render('Admin/Availability/Create', [
-            'days' => ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],
+        $data = $request->validate([
+            'day_of_week'   => 'required|integer|between:0,6',
+            'start_time'    => 'required|date_format:H:i',
+            'end_time'      => 'required|date_format:H:i|after:start_time',
+            'slot_duration' => 'required|integer|in:30,45,60,90,120,180,240',
+            'is_active'     => 'boolean',
         ]);
+
+        Availability::create($data);
+
+        return back()->with('success', 'Créneau ajouté.');
     }
 
-    public function store(AvailabilityRequest $request): RedirectResponse
+    // ── Update ────────────────────────────────────────────────────────
+    public function update(Request $request, Availability $disponibilite): RedirectResponse
     {
-        Availability::create($request->validated());
-
-        return redirect()->route('admin.disponibilites.index')
-                         ->with('success', 'Créneau de disponibilité ajouté.');
-    }
-
-    public function edit(Availability $disponibilite): Response
-    {
-        return Inertia::render('Admin/Availability/Edit', [
-            'availability' => $this->format($disponibilite),
-            'days'         => ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],
+        $data = $request->validate([
+            'day_of_week'   => 'sometimes|integer|between:0,6',
+            'start_time'    => 'sometimes|date_format:H:i',
+            'end_time'      => 'sometimes|date_format:H:i',
+            'slot_duration' => 'sometimes|integer|in:30,45,60,90,120,180,240',
+            'is_active'     => 'sometimes|boolean',
         ]);
+
+        $disponibilite->update($data);
+
+        return back()->with('success', 'Créneau mis à jour.');
     }
 
-    public function update(AvailabilityRequest $request, Availability $disponibilite): RedirectResponse
-    {
-        $disponibilite->update($request->validated());
-
-        return redirect()->route('admin.disponibilites.index')
-                         ->with('success', 'Créneau mis à jour.');
-    }
-
+    // ── Destroy ───────────────────────────────────────────────────────
     public function destroy(Availability $disponibilite): RedirectResponse
     {
         $disponibilite->delete();
 
-        return redirect()->route('admin.disponibilites.index')
-                         ->with('success', 'Créneau supprimé.');
+        return back()->with('success', 'Créneau supprimé.');
     }
 
-    /**
-     * Bloquer une date ou période (congés, fermeture exceptionnelle).
-     */
+    // ── Block (nécessite la colonne is_blocked ou une migration) ──────
     public function block(Request $request): RedirectResponse
     {
-        $request->validate([
-            'date_from'  => 'required|date|after_or_equal:today',
-            'date_to'    => 'required|date|after_or_equal:date_from',
-            'reason'     => 'nullable|string|max:255',
+        $data = $request->validate([
+            'date'       => 'required|date|after_or_equal:today',
+            'full_day'   => 'boolean',
             'start_time' => 'nullable|date_format:H:i',
-            'end_time'   => 'nullable|date_format:H:i|after:start_time',
+            'end_time'   => 'nullable|date_format:H:i',
+            'reason'     => 'nullable|string|max:255',
         ]);
 
-        $period = CarbonPeriod::create($request->date_from, $request->date_to);
+        // Vérifier si la colonne is_blocked existe
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('availabilities');
 
-        foreach ($period as $date) {
-            Availability::create([
-                'specific_date' => $date->toDateString(),
-                'start_time'    => $request->start_time ?? '08:00',
-                'end_time'      => $request->end_time ?? '20:00',
-                'is_blocked'    => true,
-                'block_reason'  => $request->reason,
-                'is_active'     => true,
-            ]);
+        if (in_array('is_blocked', $columns)) {
+            $data['is_blocked']   = true;
+            $data['day_of_week']  = null;
+            Availability::create($data);
+        } else {
+            // La table n'a pas de colonne is_blocked
+            // → il faut ajouter cette migration (voir ci-dessous)
+            return back()->with('error', 'Migration requise : ajoutez la colonne is_blocked. Voir instructions.');
         }
 
-        $count = iterator_count(CarbonPeriod::create($request->date_from, $request->date_to));
-
-        return redirect()->route('admin.disponibilites.index')
-                         ->with('success', "{$count} jour(s) bloqué(s) avec succès.");
+        return back()->with('success', 'Date bloquée.');
     }
 
-    /**
-     * API : créneaux disponibles pour une date donnée.
-     * Utilisé par le formulaire de réservation (admin & public).
-     */
+    // ── Créneaux pour une date (utilisé par le tunnel de réservation) ──
     public function slotsForDate(Request $request, string $date): JsonResponse
     {
-        $carbon     = Carbon::parse($date);
-        $serviceId  = $request->service_id;
-        $duration   = $request->duration ?? 60;
-        $buffer     = $request->buffer ?? 15;
+        $parsed = \Carbon\Carbon::parse($date);
+        $dow    = $parsed->dayOfWeek;
 
-        // 1. Vérifier si la date est bloquée
-        $blocked = Availability::where('specific_date', $carbon->toDateString())
-                               ->where('is_blocked', true)
-                               ->exists();
-
-        if ($blocked) {
-            return response()->json(['slots' => [], 'blocked' => true]);
+        // Vérifier si bloqué
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('availabilities');
+        if (in_array('is_blocked', $columns)) {
+            $isBlocked = Availability::where('is_blocked', true)
+                ->whereDate('date', $date)
+                ->where(fn($q) => $q->where('full_day', true)->orWhereNull('full_day'))
+                ->exists();
+            if ($isBlocked) return response()->json(['slots' => []]);
         }
 
-        // 2. Récupérer les disponibilités du jour
-        $availabilities = Availability::forDate($carbon)
-                                      ->where('is_blocked', false)
-                                      ->where('is_active', true)
-                                      ->get();
+        // Créneaux récurrents du jour
+        $recurring = Availability::where('day_of_week', $dow)
+            ->where(fn($q) => $q->where('is_active', true)->orWhereNull('is_active'))
+            ->get();
 
-        if ($availabilities->isEmpty()) {
-            return response()->json(['slots' => [], 'blocked' => false]);
+        if ($recurring->isEmpty()) {
+            return response()->json(['slots' => []]);
         }
 
-        // 3. Récupérer les RDV existants ce jour-là
-        $existingAppointments = Appointment::whereDate('date', $carbon->toDateString())
-                                           ->whereNotIn('status', ['cancelled'])
-                                           ->get(['start_time', 'end_time']);
+        // RDV déjà pris
+        $takenSlots = \App\Models\Appointment::whereDate('appointment_date', $date)
+            ->whereNotIn('status', ['cancelled'])
+            ->pluck('start_time')
+            ->map(fn($t) => substr($t, 0, 5))
+            ->toArray();
 
-        // 4. Générer les créneaux libres
         $slots = [];
-        $step  = 30; // Incrément de 30min
+        foreach ($recurring as $r) {
+            $current = \Carbon\Carbon::createFromFormat('H:i', substr($r->start_time, 0, 5));
+            $end     = \Carbon\Carbon::createFromFormat('H:i', substr($r->end_time,   0, 5));
+            $step    = (int) ($r->slot_duration ?? 60);
 
-        foreach ($availabilities as $avail) {
-            $current = Carbon::parse($carbon->toDateString() . ' ' . $avail->start_time);
-            $end     = Carbon::parse($carbon->toDateString() . ' ' . $avail->end_time);
-            $slotEnd = $current->copy()->addMinutes($duration + $buffer);
-
-            while ($slotEnd->lte($end)) {
-                $slotStart   = $current->copy();
-                $slotEndReal = $current->copy()->addMinutes($duration);
-
-                // Vérifier si ce créneau est libre
-                $isFree = $existingAppointments->every(function ($appt) use ($slotStart, $slotEndReal) {
-                    $apptStart = Carbon::parse($appt->start_time);
-                    $apptEnd   = Carbon::parse($appt->end_time);
-                    return $slotEndReal->lte($apptStart) || $slotStart->gte($apptEnd);
-                });
-
-                // Pas dans le passé
-                if ($isFree && ($carbon->isToday() ? $slotStart->isFuture() : true)) {
-                    $slots[] = [
-                        'start'  => $slotStart->format('H:i'),
-                        'end'    => $slotEndReal->format('H:i'),
-                        'label'  => $slotStart->format('H:i') . ' — ' . $slotEndReal->format('H:i'),
-                    ];
-                }
-
+            while ($current->copy()->addMinutes($step)->lte($end)) {
+                $timeStr = $current->format('H:i');
+                $slots[] = [
+                    'start'     => $timeStr,
+                    'end'       => $current->copy()->addMinutes($step)->format('H:i'),
+                    'available' => ! in_array($timeStr, $takenSlots),
+                ];
                 $current->addMinutes($step);
-                $slotEnd = $current->copy()->addMinutes($duration + $buffer);
             }
         }
 
-        return response()->json(['slots' => $slots, 'blocked' => false]);
-    }
-
-    /* ── Helpers ─────────────────────────────────────────────────── */
-
-    private function format(Availability $a): array
-    {
-        return [
-            'id'             => $a->id,
-            'day_of_week'    => $a->day_of_week,
-            'day_name'       => $a->day_name,
-            'specific_date'  => $a->specific_date?->toDateString(),
-            'specific_date_formatted' => $a->specific_date?->locale('fr')->isoFormat('D MMM YYYY'),
-            'start_time'     => $a->start_time_formatted,
-            'end_time'       => $a->end_time_formatted,
-            'is_blocked'     => $a->is_blocked,
-            'block_reason'   => $a->block_reason,
-            'max_appointments'=> $a->max_appointments,
-            'is_active'      => $a->is_active,
-        ];
-    }
-
-    private function buildCalendarView(): array
-    {
-        $calendar = [];
-        $period   = CarbonPeriod::create(today(), today()->addDays(29));
-
-        foreach ($period as $date) {
-            $availabilities = Availability::forDate($date)->get();
-            $blocked        = $availabilities->where('is_blocked', true)->first();
-            $open           = $availabilities->where('is_blocked', false)->where('is_active', true)->first();
-
-            $rdvCount = Appointment::whereDate('date', $date->toDateString())
-                                   ->whereNotIn('status', ['cancelled'])
-                                   ->count();
-
-            $calendar[] = [
-                'date'          => $date->toDateString(),
-                'label'         => $date->locale('fr')->isoFormat('D MMM'),
-                'day_short'     => $date->locale('fr')->isoFormat('ddd'),
-                'is_today'      => $date->isToday(),
-                'is_weekend'    => $date->isWeekend(),
-                'is_blocked'    => (bool) $blocked,
-                'block_reason'  => $blocked?->block_reason,
-                'is_open'       => (bool) $open,
-                'appointments'  => $rdvCount,
-                'hours'         => $open ? $open->start_time_formatted . ' – ' . $open->end_time_formatted : null,
-            ];
-        }
-
-        return $calendar;
+        return response()->json(['slots' => $slots]);
     }
 }

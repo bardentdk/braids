@@ -386,7 +386,7 @@ const userInitials = computed(() => {
         </main>
 
         <!-- ── Footer ─────────────────────────────────────── -->
-        <footer style="background: #0d0d1a;">
+        <footer style="background: #0d0d1a; " class="py-20">
             <div class="container-brand py-16">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
 
@@ -435,19 +435,19 @@ const userInitials = computed(() => {
                     <div class="space-y-4">
                         <h4 class="text-xs font-semibold uppercase tracking-[0.2em] font-poppins" style="color: #c4956a;">Contact</h4>
                         <div class="space-y-3">
-                            <a href="tel:+33612345678"
+                            <a href="tel:+262693022728"
                                class="flex items-center gap-3 text-sm text-white/50 hover:text-white transition-colors font-poppins">
                                 <PhPhone :size="16" class="shrink-0 text-cognac-400" />
-                                +33 6 12 34 56 78
+                                +262 693 022 728 
                             </a>
-                            <a href="mailto:contact@patricia-braids.fr"
+                            <a href="mailto:contact@ohmybraids.re"
                                class="flex items-center gap-3 text-sm text-white/50 hover:text-white transition-colors font-poppins">
                                 <PhEnvelope :size="16" class="shrink-0 text-cognac-400" />
-                                contact@patricia-braids.fr
+                                contact@ohmybraids.re
                             </a>
                             <div class="flex items-start gap-3 text-sm text-white/50 font-poppins">
                                 <PhMapPin :size="16" class="shrink-0 mt-0.5 text-cognac-400" />
-                                Paris, France
+                                Sainte-Clotilde, Réunion
                             </div>
                         </div>
                         <Link :href="route('booking.services')"
@@ -462,7 +462,7 @@ const userInitials = computed(() => {
             </div>
 
             <!-- Footer bottom -->
-            <div style="border-top: 1px solid rgba(255,255,255,0.06);">
+            <div style="border-top: 1px solid rgba(255,255,255,0.06);" class="pt-5 items-center">
                 <div class="container-brand py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
                     <p class="text-xs text-white/30 font-poppins">
                         &copy; {{ new Date().getFullYear() }} Patricia Braids — Tous droits réservés
