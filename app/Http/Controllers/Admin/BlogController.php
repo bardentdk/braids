@@ -105,8 +105,8 @@ class BlogController extends Controller
             $data['slug'] = $this->uniqueSlug(Str::slug($data['title']));
         }
 
-        if (($data['status'] ?? '') === 'published' && empty($data['published_at'])) {
-            $data['published_at'] = now();
+        if (($data['status'] ?? '') === 'published') {
+            $data['published_at'] = $data['published_at'] ?? now();
         }
 
         $data['user_id'] = auth()->id();
@@ -195,8 +195,8 @@ class BlogController extends Controller
             $data['slug'] = $blog->slug;
         }
 
-        if (($data['status'] ?? '') === 'published' && ! $blog->published_at && empty($data['published_at'])) {
-            $data['published_at'] = now();
+        if (($data['status'] ?? '') === 'published') {
+            $data['published_at'] = $data['published_at'] ?? $blog->published_at ?? now();
         }
 
         $blog->update($data);

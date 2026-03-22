@@ -116,8 +116,8 @@ class BlogPost extends Model
     {
         return $query->where('status', 'published')
                     ->where(function ($q) {
-                        $q->whereNull('published_at')           // pas de date = publié immédiatement
-                        ->orWhere('published_at', '<=', now()); // ou date passée
+                        $q->whereNull('published_at')
+                        ->orWhere('published_at', '<=', now());
                     });
     }
 
