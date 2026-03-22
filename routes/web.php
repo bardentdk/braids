@@ -156,6 +156,10 @@ Route::get('/reservation/{service:slug}',           [\App\Http\Controllers\Publi
 Route::post('/reservation/{service:slug}/creneaux', [\App\Http\Controllers\Public\BookingController::class, 'slots'])->name('booking.slots');
 Route::post('/reservation/{service:slug}/reserver', [\App\Http\Controllers\Public\BookingController::class, 'store'])->name('booking.store');
 
+Route::get('/reservation/{appointment}/confirmation',
+    [BookingController::class, 'confirmation']
+)->name('booking.confirmation');
+
 // ── Boutique ──────────────────────────────────────────────────────────
 Route::get('/boutique',                [\App\Http\Controllers\Public\ShopController::class, 'index'])->name('shop.index');
 Route::get('/boutique/{product:slug}', [\App\Http\Controllers\Public\ProductController::class, 'show'])->name('shop.product');

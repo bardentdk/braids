@@ -23,6 +23,7 @@ class BookingController extends Controller
 {
     public function __construct(protected BrevoService $brevo) {}
 
+    // ── Liste des services ────────────────────────────────────────────
     public function services(Request $request): Response
     {
         $query = Service::active()
@@ -63,17 +64,17 @@ class BookingController extends Controller
             'categories' => $categories,
             'filters'    => $request->only(['category']),
             'settings'   => [
-                'booking_enabled'          => Setting::get('booking_enabled', true),
-                'booking_cancellation_hours'=> Setting::get('booking_cancellation_hours', 48),
+                'booking_enabled'            => Setting::get('booking_enabled', true),
+                'booking_cancellation_hours' => Setting::get('booking_cancellation_hours', 48),
             ],
         ]);
     }
 
+    // ── Page réservation d'un service ─────────────────────────────────
     public function show(Service $service): Response
     {
         abort_if(! $service->is_active, 404);
 
-        // Générer les 30 prochains jours disponibles
         $availableDates = $this->getAvailableDates(30);
 
         return Inertia::render('Public/Booking', [
@@ -103,6 +104,7 @@ class BookingController extends Controller
         ]);
     }
 
+    // ── Créneaux disponibles (AJAX) ───────────────────────────────────
     public function slots(Request $request, Service $service): JsonResponse
     {
         $request->validate(['date' => 'required|date|after_or_equal:today']);
@@ -110,12 +112,10 @@ class BookingController extends Controller
         $date   = Carbon::parse($request->date);
         $notice = (int) Setting::get('booking_min_notice_hours', 24);
 
-        // Vérifier le délai minimum
         if ($date->diffInHours(now()) < $notice && $date->isToday()) {
             return response()->json(['slots' => [], 'reason' => 'notice']);
         }
 
-        // Vérifier si la date est bloquée
         $blocked = Availability::where('specific_date', $date->toDateString())
                                ->where('is_blocked', true)
                                ->exists();
@@ -124,7 +124,6 @@ class BookingController extends Controller
             return response()->json(['slots' => [], 'reason' => 'blocked']);
         }
 
-        // Disponibilités du jour
         $availabilities = Availability::forDate($date)
                                       ->where('is_blocked', false)
                                       ->where('is_active', true)
@@ -134,15 +133,13 @@ class BookingController extends Controller
             return response()->json(['slots' => [], 'reason' => 'closed']);
         }
 
-        // RDV existants
-        $existing = Appointment::whereDate('date', $date->toDateString())
+        $existing = Appointment::whereDate('date', $date->toDateString())   // ← colonne 'date'
                                ->whereNotIn('status', ['cancelled'])
                                ->get(['start_time', 'end_time']);
 
-        $slots     = [];
-        $step      = 30;
-        $duration  = $service->duration;
-        $buffer    = $service->buffer_time;
+        $slots    = [];
+        $step     = 30;
+        $duration = $service->duration;
 
         foreach ($availabilities as $avail) {
             $current = Carbon::parse($date->toDateString() . ' ' . $avail->start_time);
@@ -152,13 +149,8 @@ class BookingController extends Controller
                 $slotStart = $current->copy();
                 $slotEnd   = $current->copy()->addMinutes($duration);
 
-                // Skip si dans le passé ou trop proche
-                if ($slotStart->isPast()) {
-                    $current->addMinutes($step);
-                    continue;
-                }
+                if ($slotStart->isPast()) { $current->addMinutes($step); continue; }
 
-                // Vérifier la disponibilité
                 $free = $existing->every(fn($appt) =>
                     $slotEnd->lte(Carbon::parse($appt->start_time)) ||
                     $slotStart->gte(Carbon::parse($appt->end_time))
@@ -179,13 +171,14 @@ class BookingController extends Controller
         return response()->json(['slots' => $slots, 'reason' => null]);
     }
 
+    // ── Store : créer le RDV ──────────────────────────────────────────
     public function store(BookingRequest $request, Service $service): RedirectResponse
     {
         $data = $request->validated();
 
-        abort_if(! Setting::get('booking_enabled', true), 403, 'Les réservations sont temporairement désactivées.');
+        abort_if(! Setting::get('booking_enabled', true), 403, 'Les réservations sont désactivées.');
 
-        // Récupérer ou créer le client
+        // ── Récupérer ou créer le client ──────────────────────────────
         $client = null;
         if (auth()->check()) {
             $client = auth()->user()->client;
@@ -203,12 +196,11 @@ class BookingController extends Controller
             );
         }
 
-        // Calculer end_time
-        $start = Carbon::parse($data['start_time']);
-        $end   = $start->copy()->addMinutes($service->duration);
+        // ── Vérifier disponibilité du créneau ─────────────────────────
+        $start    = Carbon::parse($data['start_time']);
+        $end      = $start->copy()->addMinutes($service->duration);
 
-        // Vérifier que le créneau est toujours libre
-        $conflict = Appointment::where('date', $data['date'])
+        $conflict = Appointment::where('date', $data['date'])   // ← colonne 'date'
                                ->whereNotIn('status', ['cancelled'])
                                ->where(fn($q) => $q
                                    ->whereBetween('start_time', [$start->format('H:i'), $end->format('H:i')])
@@ -220,20 +212,22 @@ class BookingController extends Controller
             return back()->with('error', 'Ce créneau vient d\'être réservé. Veuillez en choisir un autre.');
         }
 
+        // ── Créer le rendez-vous ──────────────────────────────────────
         $appointment = Appointment::create([
-            'client_id'    => $client->id,
-            'service_id'   => $service->id,
-            'date'         => $data['date'],
-            'start_time'   => $start->format('H:i'),
-            'end_time'     => $end->format('H:i'),
-            'status'       => AppointmentStatus::Pending,
-            'price'        => $service->price,
-            'deposit_amount'=> $service->deposit_amount,
-            'client_notes' => $data['notes'] ?? null,
-            'hair_details' => $data['hair_details'] ?? null,
+            'client_id'      => $client->id,
+            'service_id'     => $service->id,
+            'date'           => $data['date'],             // ← colonne 'date'
+            'start_time'     => $start->format('H:i'),
+            'end_time'       => $end->format('H:i'),
+            'status'         => AppointmentStatus::Pending,
+            'price'          => $service->price,
+            'deposit_amount' => $service->deposit_amount,
+            'deposit_paid'   => false,
+            'client_notes'   => $data['notes'] ?? null,
+            'hair_details'   => $data['hair_details'] ?? null,
         ]);
 
-        // Email de confirmation
+        // ── Email de confirmation ─────────────────────────────────────
         try {
             $html = view('emails.appointment-confirmation', [
                 'appointment' => $appointment,
@@ -242,49 +236,93 @@ class BookingController extends Controller
             ])->render();
 
             $this->brevo->send(
-                toEmail:     $client->email,
-                toName:      $client->full_name,
-                subject:     "Votre demande de rendez-vous — {$appointment->reference}",
+                toEmail:     $client->email ?? $data['email'],
+                toName:      $client->full_name ?? ($data['first_name'] . ' ' . $data['last_name']),
+                subject:     "Votre demande de rendez-vous — " . ($appointment->reference ?? '#' . $appointment->id),
                 htmlContent: $html,
             );
         } catch (\Throwable) {}
 
-        return redirect()->route('home')
-                         ->with('success', "Votre rendez-vous {$appointment->reference} a bien été enregistré. Vous recevrez une confirmation par email.");
+        // ── Redirection selon acompte ─────────────────────────────────
+        // Si un acompte est requis → proposer le paiement
+        if ($service->deposit_required && $service->deposit_amount > 0) {
+            return redirect()->route('payment.show', [
+                'type' => 'appointment',
+                'id'   => $appointment->id,
+            ])->with('info', 'Votre rendez-vous est réservé. Finalisez en réglant l\'acompte.');
+        }
+
+        // Sinon → confirmation directe
+        return redirect()->route('booking.confirmation', $appointment->id)
+                         ->with('success', 'Votre rendez-vous a bien été enregistré !');
     }
 
+    // ── Page de confirmation ──────────────────────────────────────────
+    public function confirmation(Appointment $appointment): Response
+    {
+        // S'assurer que le client ne peut voir que ses propres RDV
+        if (auth()->check()) {
+            abort_if(
+                $appointment->client?->user_id !== auth()->id() && ! auth()->user()->is_admin,
+                403
+            );
+        }
+
+        $appointment->load(['service', 'client.user']);
+
+        return Inertia::render('Public/BookingConfirmation', [
+            'appointment' => [
+                'id'          => $appointment->id,
+                'reference'   => $appointment->reference ?? '#' . $appointment->id,
+                'date'        => Carbon::parse($appointment->date)->locale('fr')->isoFormat('dddd D MMMM YYYY'),
+                'time_start'  => substr($appointment->start_time, 0, 5),
+                'time_end'    => substr($appointment->end_time,   0, 5),
+                'price'       => $appointment->price,
+                'deposit_required' => $appointment->service?->deposit_required,
+                'deposit_amount'   => $appointment->deposit_amount,
+                'deposit_paid'     => $appointment->deposit_paid,
+                'status'      => $appointment->status instanceof \BackedEnum
+                    ? $appointment->status->value
+                    : (string) $appointment->status,
+            ],
+            'service' => [
+                'name'     => $appointment->service?->name,
+                'duration' => $appointment->service?->duration,
+            ],
+        ]);
+    }
+
+    // ── Dates disponibles ─────────────────────────────────────────────
     private function getAvailableDates(int $days): array
     {
         $dates     = [];
         $advance   = (int) Setting::get('booking_advance_days', 60);
         $minNotice = (int) Setting::get('booking_min_notice_hours', 24);
 
-        $start = now()->addHours($minNotice)->startOfDay();
-        $end   = now()->addDays(min($days, $advance));
-
+        $start  = now()->addHours($minNotice)->startOfDay();
+        $end    = now()->addDays(min($days, $advance));
         $period = \Carbon\CarbonPeriod::create($start, $end);
 
         foreach ($period as $date) {
             $blocked = Availability::where('specific_date', $date->toDateString())
                                    ->where('is_blocked', true)
                                    ->exists();
-
             if ($blocked) continue;
 
-            $hasAvailability = Availability::forDate($date)
-                                           ->where('is_blocked', false)
-                                           ->where('is_active', true)
-                                           ->exists();
+            $hasAvail = Availability::forDate($date)
+                                    ->where('is_blocked', false)
+                                    ->where('is_active', true)
+                                    ->exists();
 
-            if ($hasAvailability) {
+            if ($hasAvail) {
                 $dates[] = [
-                    'date'      => $date->toDateString(),
-                    'label'     => $date->locale('fr')->isoFormat('ddd D MMM'),
-                    'day'       => $date->locale('fr')->isoFormat('ddd'),
-                    'number'    => $date->format('d'),
-                    'month'     => $date->locale('fr')->isoFormat('MMM'),
-                    'is_today'  => $date->isToday(),
-                    'is_weekend'=> $date->isWeekend(),
+                    'date'       => $date->toDateString(),
+                    'label'      => $date->locale('fr')->isoFormat('ddd D MMM'),
+                    'day'        => $date->locale('fr')->isoFormat('ddd'),
+                    'number'     => $date->format('d'),
+                    'month'      => $date->locale('fr')->isoFormat('MMM'),
+                    'is_today'   => $date->isToday(),
+                    'is_weekend' => $date->isWeekend(),
                 ];
             }
         }

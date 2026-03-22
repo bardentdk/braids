@@ -11,17 +11,30 @@ use Inertia\Response;
 
 class AppointmentController extends Controller
 {
-    // ── Index (liste) ─────────────────────────────────────────────────
+    // ── Index ─────────────────────────────────────────────────────────
     public function index(Request $request): Response
     {
         $query = Appointment::with(['client.user', 'service'])
             ->when($request->search, function ($q) use ($request) {
-                $q->whereHas('client.user', fn($u) => $u->where('name', 'like', "%{$request->search}%"))
-                  ->orWhereHas('service', fn($s) => $s->where('name', 'like', "%{$request->search}%"));
+                $q->where(function ($sub) use ($request) {
+                    $sub->whereHas('client.user', fn($u) =>
+                            $u->where('name', 'like', "%{$request->search}%")
+                              ->orWhere('email', 'like', "%{$request->search}%")
+                        )
+                        ->orWhereHas('client', fn($c) =>
+                            $c->where('first_name', 'like', "%{$request->search}%")
+                              ->orWhere('last_name',  'like', "%{$request->search}%")
+                              ->orWhere('phone',      'like', "%{$request->search}%")
+                        )
+                        ->orWhereHas('service', fn($s) =>
+                            $s->where('name', 'like', "%{$request->search}%")
+                        );
+                });
             })
             ->when($request->status, fn($q) => $q->where('status', $request->status))
-            ->when($request->date,   fn($q) => $q->whereDate('appointment_date', $request->date))
-            ->latest('appointment_date');
+            ->when($request->date,   fn($q) => $q->whereDate('date', $request->date))  // ← colonne 'date'
+            ->orderByDesc('date')
+            ->orderByDesc('start_time');
 
         $appointments = $query->paginate(15)->withQueryString();
 
@@ -45,10 +58,10 @@ class AppointmentController extends Controller
         $month = (int) $request->get('month', date('n'));
 
         $appointments = Appointment::with(['client.user', 'service'])
-            ->whereYear('appointment_date',  $year)
-            ->whereMonth('appointment_date', $month)
+            ->whereYear('date',  $year)   // ← colonne 'date'
+            ->whereMonth('date', $month)
             ->whereNotIn('status', ['cancelled'])
-            ->orderBy('appointment_date')
+            ->orderBy('date')
             ->orderBy('start_time')
             ->get()
             ->map(fn($a) => $this->mapAppointment($a));
@@ -74,7 +87,6 @@ class AppointmentController extends Controller
     public function confirm(Appointment $rendezVou): RedirectResponse
     {
         $rendezVou->update(['status' => 'confirmed']);
-
         return back()->with('success', 'Rendez-vous confirmé.');
     }
 
@@ -82,7 +94,6 @@ class AppointmentController extends Controller
     public function cancel(Appointment $rendezVou): RedirectResponse
     {
         $rendezVou->update(['status' => 'cancelled']);
-
         return back()->with('success', 'Rendez-vous annulé.');
     }
 
@@ -90,55 +101,60 @@ class AppointmentController extends Controller
     public function complete(Appointment $rendezVou): RedirectResponse
     {
         $rendezVou->update(['status' => 'completed']);
-
         return back()->with('success', 'Rendez-vous marqué comme terminé.');
     }
 
     // ── Send reminder ─────────────────────────────────────────────────
     public function sendReminder(Appointment $rendezVou): RedirectResponse
     {
-        // TODO: envoyer un email de rappel via BrevoService
-        // app(BrevoService::class)->sendAppointmentReminder($rendezVou);
-
-        return back()->with('success', 'Rappel envoyé au client.');
+        // TODO: app(BrevoService::class)->sendAppointmentReminder($rendezVou);
+        return back()->with('success', 'Rappel envoyé.');
     }
 
     // ── Destroy ───────────────────────────────────────────────────────
     public function destroy(Appointment $rendezVou): RedirectResponse
     {
         $rendezVou->delete();
-
-        return redirect()->route('admin.rendez-vous.index')
-                         ->with('success', 'Rendez-vous supprimé.');
+        return redirect()->route('admin.rendez-vous.index')->with('success', 'Rendez-vous supprimé.');
     }
 
     // ── Helper ────────────────────────────────────────────────────────
     private function mapAppointment(Appointment $a, bool $full = false): array
     {
+        // Nom du client : priorité user.name > client first+last > guest
+        $clientName = $a->client?->user?->name
+            ?? (($a->client?->first_name ?? '') . ' ' . ($a->client?->last_name ?? ''))
+            ?: ($a->guest_name ?? 'Client inconnu');
+
         $base = [
             'id'           => $a->id,
-            'client_name'  => $a->client?->user?->name ?? $a->guest_name ?? 'Client inconnu',
-            'client_email' => $a->client?->user?->email ?? $a->guest_email,
-            'client_phone' => $a->client?->phone ?? $a->guest_phone,
+            'reference'    => $a->reference ?? '#' . $a->id,
+            'client_name'  => trim($clientName),
+            'client_email' => $a->client?->user?->email ?? $a->client?->email ?? null,
+            'client_phone' => $a->client?->phone ?? null,
             'service_name' => $a->service?->name ?? '—',
-            'date'         => $a->appointment_date
-                ? \Carbon\Carbon::parse($a->appointment_date)->locale('fr')->isoFormat('ddd D MMM YYYY')
+            'date'         => $a->date
+                ? \Carbon\Carbon::parse($a->date)->locale('fr')->isoFormat('ddd D MMM YYYY')
                 : '—',
             'time_start'   => $a->start_time ? substr($a->start_time, 0, 5) : '—',
             'time_end'     => $a->end_time   ? substr($a->end_time,   0, 5) : '—',
             'duration'     => $a->service?->duration ?? 60,
-            'price'        => $a->service
-                ? number_format($a->service->price, 2, ',', ' ') . ' €'
-                : '—',
-            'status'       => $a->status,
-            'notes'        => $a->notes,
+            'price'        => $a->price
+                ? number_format($a->price, 2, ',', ' ') . ' €'
+                : ($a->service ? number_format($a->service->price, 2, ',', ' ') . ' €' : '—'),
+            'deposit_paid' => $a->deposit_paid ?? false,
+            'status'       => $a->status instanceof \BackedEnum
+                ? $a->status->value
+                : (string) $a->status,
+            'notes'        => $a->client_notes ?? $a->notes ?? null,
         ];
 
         if ($full) {
-            $base['service']       = $a->service ? ['id' => $a->service->id, 'name' => $a->service->name] : null;
-            $base['client']        = $a->client  ? ['id' => $a->client->id]  : null;
-            $base['created_at']    = $a->created_at?->locale('fr')->isoFormat('D MMMM YYYY');
-            $base['confirmed_at']  = $a->confirmed_at?->locale('fr')->isoFormat('D MMMM YYYY');
+            $base['service']         = $a->service ? ['id' => $a->service->id, 'name' => $a->service->name, 'duration' => $a->service->duration] : null;
+            $base['client_id']       = $a->client?->id;
+            $base['deposit_amount']  = $a->deposit_amount;
+            $base['hair_details']    = $a->hair_details ?? null;
+            $base['created_at']      = $a->created_at?->locale('fr')->isoFormat('D MMMM YYYY à HH:mm');
         }
 
         return $base;
