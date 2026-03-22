@@ -29,12 +29,18 @@ export default defineConfig({
     build: {
         rollupOptions: {
             output: {
-                manualChunks: {
-                    vendor: ['vue', '@inertiajs/vue3'],
-                    gsap: ['gsap'],
-                    icons: ['@phosphor-icons/vue'],
-                },
-            },
-        },
+                manualChunks(id) {
+                    if (id.includes('node_modules/vue') || id.includes('@inertiajs/vue3')) {
+                        return 'vue'
+                    }
+                    if (id.includes('node_modules/gsap')) {
+                        return 'gsap'
+                    }
+                    if (id.includes('node_modules/axios') || id.includes('node_modules/pinia')) {
+                        return 'vendor'
+                    }
+                }
+            }
+        }
     },
 })
