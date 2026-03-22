@@ -48,6 +48,7 @@ const navLinks = [
     { label: 'Services',  href: 'booking.services' },
     { label: 'Boutique',  href: 'shop.index' },
     { label: 'Galerie',   href: 'gallery.index' },
+    { label: 'Blog',      href: 'blog.index' },
     { label: 'Contact',   href: 'contact.show' },
 ]
 
